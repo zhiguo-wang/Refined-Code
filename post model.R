@@ -1,8 +1,9 @@
 # import functions
-source("Refined Code\\functions.R")
+source("refined-code\\config.R")
+source("refined-code\\functions.R")
 cer_ann_due <- getCertainAnnuityDue()
-source("Refined Code\\Assumptions.R")
-load("Refined Code\\LE.RData")
+source("refined-code\\Assumptions.R")
+load("refined-code\\LE.RData")
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Model Points Test
@@ -13,7 +14,7 @@ load("Refined Code\\LE.RData")
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-MP <- read.csv("DataResults\\Post-Model Points 500 0519.csv", header = TRUE)
+MP <- read.csv("DataResults\\Post-Model Points 500 0521.csv", header = TRUE)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -25,25 +26,25 @@ MP <- read.csv("DataResults\\Post-Model Points 500 0519.csv", header = TRUE)
 #
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-mp_optr_ideal <- matrix(0, 1, 9)
-mp_optr_actual <- matrix(0, 1, 9)
+mp_optr_ideal <- matrix(0, 1, 10)
+mp_optr_actual <- matrix(0, 1, 10)
 
-for (j in 1 : 500) {
+for (j in 151 : 250) {
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
     # 1.2 Customer Information
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    AgePre <- MP[j, 2]				# the current age				
-    currentSalary <- MP[j,3]    
-    Gender <- levels(factor(MP[j, 4]))
-    AgeRe <- MP[j, 5]    			# the retirement age
+    AgePre <- MP[j, AgePreID]				# the current age				
+    currentSalary <- MP[j,currentSalaryID]    
+    Gender <- levels(factor(MP[j, GenderID]))
+    AgeRe <- MP[j, AgeReID]    			# the retirement age
     life_ept <- get(paste("LE_",Gender,sep=""))[AgeRe-19]
     Salary <- currentSalary * (1 + r_wage) ^ (AgeRe - AgePre)
-    w_prem <- MP[j,6]				# whole life insurance annual premium
-    ssb <- MP[j,7]    				# social security benefit
+    ssb <- MP[j,ssbID]    				# social security benefit
     period <- MaxAge - AgeRe + 2
+    
 # annual social security benefits (retirement and disablement)
     
 	
@@ -116,8 +117,7 @@ for (j in 1 : 500) {
     
     #    w_bene <- Burial_cost + 0.5 * Salary
     
-    #whole life benefit is to cover burial cost and 0.5* currentSalary
-    w_bene <- Burial_cost + 0.5 * currentSalary
+
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     phycon <- getPhycon(Gender,AgeRe,MaxAge,st)
@@ -144,24 +144,27 @@ for (j in 1 : 500) {
     
     #ratio = annual benefits / annual premium
     ratio_LTC <- ((100 + 50) * 365) / 4354
-    
+    ratio_LTC <- 30                                                                     #### temporary setup, need further discussion
     # LTC annual premium
     pre_LTC <- LTCb / ratio_LTC
-    pre_LTC <- LTCb / 30
     # LTC single premium
     # use certain annuity to represent healthy life annuity
     sig_pre_LTC <- pre_LTC * cer_ann_due[round(length(which(phycon == 1)) / st)]      
     
-    # Perm insurance
-    
-    sig_pre_perm <- w_prem * cer_ann_due[round(length(which(phycon == 1)) / st)]
+
         
     unit <- 0.1
     
-    ##########
-    FinSin <-  MP[j, 8]
-    ##########
-    
+    ####  Ideal case  ######
+    FinSin <-  MP[j, idealAssetID]
+    #**********************#
+         
+    #whole life benefit is to cover burial cost and 0.5* currentSalary
+    w_bene <- Burial_cost + 0.5 * currentSalary
+    w_prem <- MP[j,WLIdealID]            	# whole life insurance annual premium    
+    # Perm insurance
+    sig_pre_perm <- w_prem * cer_ann_due[round(length(which(phycon == 1)) / st)]       
+
     per_LTC <- sig_pre_LTC / FinSin
     
     per_perm <- sig_pre_perm / FinSin
@@ -171,7 +174,7 @@ for (j in 1 : 500) {
     ntest <- round(1 - per_LTCPerm, digits = 1) / unit
     
     # list all possible combinations of per_LTC and per_Ann
-    possible_allocations <- matrix(seq(0, (1 - per_LTCPerm), by = unit), , 1)
+    possible_allocations <- matrix(seq(0.5, (1 - per_LTCPerm), by = unit), , 1)
     
     possible_results <- matrix(0, nrow(possible_allocations), 8)
     
@@ -180,27 +183,40 @@ for (j in 1 : 500) {
     }
     
     # addjusted possible results (eliminate the cases that % portfolio < % annuity)
-    add_pr <- possible_results[-which(possible_results[ , 3] < 
-                                          possible_results[ , 4]), -c(8)]
+    if(length(which(possible_results[ , 3] < possible_results[ , 4])) == 0 ){
+        add_pr <- possible_results
+    } else {
+        add_pr <- possible_results[-which(possible_results[ , 3] < possible_results[ , 4]), -c(8)]
+    }
+    
     
     # the optimal results for a single test
-    if(!is.null(nrow(add_pr))){    
-        test_optr <- add_pr[which(add_pr[ , 2] == min(add_pr[ , 2])), ]
-    }else{
+    # check if there is only one solution or no solution
+    if(is.null(nrow(add_pr))){    
         test_optr <- add_pr
+    }else{
+        test_optr <- add_pr[which(add_pr[ , 2] == min(add_pr[ , 2])), ]
     }
-    #if multi results have rp = 0, then choose greatest ANetA
+    #if multi results have rp = 0, then choose greatest ANetA -- aggregated net asset at death
     if(!is.null(nrow(test_optr)) && nrow(test_optr)>1){
         test_optr <- test_optr[which(test_optr[,1] == max(test_optr[,1])),]
     }
     
+    # output result contains allocation for ideal asset and actual asset
+    # and the maximum possible_allocation is naive strategy
 	test_optr <- c(test_optr,possible_results[nrow(possible_allocations),2],possible_results[nrow(possible_allocations),3])
     # the optimal results for all of the model points
     mp_optr_ideal <- rbind(mp_optr_ideal, test_optr)
     
-    ##########
-    FinSin <-  MP[j, 9]
-    ##########
+    #####  Actual (affordable budget) case  #####
+    FinSin <-  MP[j, actualAssetID]
+    #*******************************************#
+    
+    # Whole life premium is driven by pre-model(affordable budget/actual asset)
+    w_bene <- w_bene * (MP[j,WLActualID]/w_prem)
+    w_prem <- MP[j,WLActualID]                # whole life insurance annual premium
+    # Perm insurance
+    sig_pre_perm <- w_prem * cer_ann_due[round(length(which(phycon == 1)) / st)]
     
     per_LTC <- sig_pre_LTC / FinSin
     
@@ -211,9 +227,9 @@ for (j in 1 : 500) {
     ntest <- round(1 - per_LTCPerm, digits = 1) / unit
     
     #if no possible_allocations available, skip to next data point
-    if(per_LTCPerm > 1) next
+    if(per_LTCPerm > 0.5) next
     # list all possible combinations of per_LTC and per_Ann
-    possible_allocations <- matrix(seq(0, (1 - per_LTCPerm), by = unit), , 1)
+    possible_allocations <- matrix(seq(0.5, (1 - per_LTCPerm), by = unit), , 1)
     
     possible_results <- matrix(0, nrow(possible_allocations), 8)
     
@@ -221,10 +237,14 @@ for (j in 1 : 500) {
         possible_results[i, ] <- post_opt(FinSin, Salary, possible_allocations[i], life_ept)
     }
     
+
     # addjusted possible results (eliminate the cases that % portfolio < % annuity)
-    add_pr <- possible_results[-which(possible_results[ , 3] < 
-                                          possible_results[ , 4]), -c(8)]
-    
+    if(length(which(possible_results[ , 3] < possible_results[ , 4])) == 0 ){
+        add_pr <- possible_results
+    } else {
+        add_pr <- possible_results[-which(possible_results[ , 3] < possible_results[ , 4]), -c(8)]
+    }
+
     # the optimal results for a single test
     if(!is.null(nrow(add_pr))){    
         test_optr <- add_pr[which(add_pr[ , 2] == min(add_pr[ , 2])), ]
@@ -248,9 +268,9 @@ mp_optr_ideal <- mp_optr_ideal[-1, ]
 mp_optr_actual <- mp_optr_actual[-1, ]
 
 
-colnames(mp_optr_ideal) <- c("ANetA", "Ideal Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","naive Ruin","% Inv")
-colnames(mp_optr_actual) <- c("ANetA", "Actual Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI", "naive Ruin","% Inv")
-write.csv(cbind(mp_optr_ideal,mp_optr_actual), file = "DataResults\\temp0519_1-500.csv")
+colnames(mp_optr_ideal) <- c("ANetA", "Ideal Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls","naive Ruin","% Inv")
+colnames(mp_optr_actual) <- c("ANetA", "Actual Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls", "naive Ruin","% Inv")
+write.csv(cbind(mp_optr_ideal,mp_optr_actual), file = "DataResults\\temp0519_1-239.csv")
 
 
 

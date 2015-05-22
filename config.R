@@ -1,7 +1,10 @@
 # Inputs Column index
-currentAgeID <- 2
-retirementAgeID <- 9
-GenderID <- 4
+AgePreID <- 2
 currentSalaryID <- 3
-idealAssetID <- 13
-actualAssetID <- 14
+GenderID <- 4
+AgeReID <- 5
+WLIdealID <- 6
+WLActualID <- 7
+ssbID <- 8
+idealAssetID <- 9
+actualAssetID <- 10
