@@ -305,3 +305,97 @@ post_opt <- function(FinSin, Salary, per_Inv, life_ept) {
     #print(result)
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 }
+
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#' naive strategy function
+#' cash income is from investment and ssb
+#' cash outflow includes living, healthcare and additional expenses, and double of those if the person becomes disable
+#'                       and death expenses-Burial_cost
+post_naive <- function() {
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    # 3.2 Cash inflows; Cash inflows are provided by ssb and investment
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    cashin_ssb <- matrix(0, period, st)
+    cashin_ssb[which(phycon != 3)] <- ssb
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    # 3.2 Cash Outflows
+    
+    # 3.2.1 Cash Outflow_Basic Living Expenses & Healthcare Expenses & Add Expenses
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # assume the basic living expenses is a percentage (bas_liv_rate) of the Salary
+    cashout_bdle <- matrix(0, period, st)
+    cashout_bdle[which(phycon == 1)] <- ((a0 + a1 * Salary)+ (b0 + b1 * AgeRe) + 
+                                             (c0 + c1 * AgeRe + c2 * Salary))
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    # 3.2.2 Cash Outflow_LTC Living Expenses
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    cashout_bdle[which(phycon == 2)] <- ((a0 + a1 * Salary)+ (b0 + b1 * AgeRe) + 
+                                             (c0 + c1 * AgeRe + c2 * Salary)) * 2
+    cashout_bdle <- cashout_bdle * as.vector(lev)
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    # 3.2.3 Cash Outflow_Death Expenses
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    cashout_dea <- matrix(0, period, st)
+    for (i in 1 : st) {
+        cashout_dea[min(which(phycon[ , i] == 3)), i] <- Burial_cost
+    }
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    # 4. Net Assets through Post-retirement
+    
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    IniA <- matrix(0, period, st)
+    IniA[1, ] <- FinSin
+    NetA <- matrix(0, period, st)
+    NetA[1, ] <- IniA[1, ] + cashin_ssb[1, ] -
+        cashout_bdle[1, ] - cashout_dea[1, ]
+    
+    # cumulate the net assets
+    for (i in 1 : st) {
+        for (j in 2 : min(which(phycon[ , i] == 3))) {
+            NetA[j, i] <- NetA[(j - 1), i] *YCP_M[j, i] + cashin_ssb[j, i] -
+                cashout_bdle[j, i] - cashout_dea[j, i] 
+        }
+    }
+    
+    # Weighted Net Assets at Death Time
+    WNetA <- matrix(0, 1, st)
+    for (i in 1 : st) {
+        WNetA[1, i] <- NetA[max(which(NetA[ , i] != 0)), i]
+    }
+    
+    # aggregate ruin probability
+    agg_ruin <- abs(sum(WNetA[which(WNetA < 0)])) / 
+        (abs(sum(WNetA[which(WNetA < 0)])) + 
+             sum(WNetA[which(WNetA >= 0)]))
+    
+    
+    
+    # give more weights for ruin cases
+    WNetA <- sort(WNetA, decreasing = TRUE)
+    
+    # Average net assets
+    ANetA <- sum(WNetA) / st
+    
+    # Shortfalls at death
+    shortfalls <- sum(WNetA[which(WNetA < 0)]) / length(which(WNetA < 0))
+    
+    #result <- cbind(ANetA, agg_ruin, LTC_ruin, liv_ruin)
+    result <- cbind(ANetA, agg_ruin, shortfalls)
+    
+    return(result)
+    #print(result)
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+}

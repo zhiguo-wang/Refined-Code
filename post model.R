@@ -1,6 +1,7 @@
 # import functions
 source("refined-code\\config.R")
 source("refined-code\\functions.R")
+source("refined-code\\naive.R")
 cer_ann_due <- getCertainAnnuityDue()
 source("refined-code\\Assumptions.R")
 load("refined-code\\LE.RData")
