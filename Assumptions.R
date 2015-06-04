@@ -3,6 +3,7 @@ EcoAss <- read.csv("Inputs\\Economic Assumptions\\Economic Assumptions.csv", hea
 Portfolio <- read.csv("Inputs\\Economic Assumptions\\Investment Portfolio.csv", header = TRUE)
 HeaToDea_M <- read.csv("Inputs\\Post Probability\\Healthy\\Annuity 2000 Basic Table - Male.csv", header = TRUE) # Health to Death for Male
 FinaProd <- read.csv("Inputs\\Financial Products\\Financial Products.csv", header = TRUE)
+APVstd <- read.csv("Inputs\\APV std.csv", header = TRUE)
 # scenarios of Monte Carlo Simulation
 st <- 2000
 Burial_cost <- 25000

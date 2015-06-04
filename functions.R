@@ -1,4 +1,4 @@
-load("Refined-Code\\new MC Matrix.RData")
+#load("Refined-Code\\new MC Matrix.RData")
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # 1.9 the present value of certain annuity due (duration from 1 to 50)
@@ -33,7 +33,7 @@ shrink <- function(x){
 
 
 getPhycon <- function(Gender,Age, MaxAge, st){
-    period <- period <- MaxAge - Age + 2
+    period <- MaxAge - Age + 2
     sim_phycon <- matrix(1, period, 1)
     for (t in 1 : st) {
         # the original state is alwayls healthy i.e. the original state vector = [1, 0, 0]

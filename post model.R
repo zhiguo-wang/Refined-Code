@@ -5,6 +5,7 @@ cer_ann_due <- getCertainAnnuityDue()
 source("refined-code\\Assumptions.R")
 load("refined-code\\LE.RData")
 r_spia <- read.csv("inputs\\SPIArate.csv")
+load("refined-code\\phycons.RData")
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Model Points Test
@@ -30,7 +31,7 @@ MP <- read.csv("DataResults\\Post MP 750 0603.csv", header = TRUE)
 mp_optr_ideal <- matrix(0, 1, 9)
 mp_optr_actual <- matrix(0, 1, 9)
 
-for (j in 1 : 500) {
+for (j in 1 : 50){
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -121,8 +122,8 @@ for (j in 1 : 500) {
 
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-    phycon <- getPhycon(Gender,AgeRe,MaxAge,st)
-
+    #phycon <- getPhycon(Gender,AgeRe,MaxAge,st)
+    phycon <- get(paste("phycon.",Gender,AgeRe,sep=""))
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
     # 6. Exhaustive method to obtain the optimal allocation for post-retirement
@@ -157,7 +158,7 @@ for (j in 1 : 500) {
     unit <- 0.1
     
     ####  Ideal case  ######
-    FinSin <-  MP[j, idealAssetID]
+    FinSin <-  MP[j, idealAssetID] * (1 + APVstd[which(APVstd[,1]==AgeRe), ifelse(Gender=="M",2,3)] * 1.64)
     #**********************#
          
     #whole life benefit is to cover burial cost and 0.5* currentSalary
@@ -206,71 +207,72 @@ for (j in 1 : 500) {
     # the optimal results for all of the model points
     test_optr <- c(j, test_optr)
     mp_optr_ideal <- rbind(mp_optr_ideal, test_optr)
-    
-    #####  Actual (affordable budget) case  #####
-    FinSin <-  MP[j, actualAssetID]
-    #*******************************************#
-    
-    # Whole life premium is driven by pre-model(affordable budget/actual asset)
-    w_prem <- MP[j,WLIdealID]                # whole life insurance annual premium    
-    w_bene <- w_prem / w_rate * 10000
-    # Perm insurance
-    sig_pre_perm <- w_prem * cer_ann_due[round(length(which(phycon == 1)) / st)]
-    
-    per_LTC <- sig_pre_LTC / FinSin
-    
-    per_perm <- sig_pre_perm / FinSin
-    
-    per_LTCPerm <- round(per_LTC + per_perm, digits = 1) + unit
-    
-    ntest <- round(1 - per_LTCPerm, digits = 1) / unit
-    
-    #if no possible_allocations available, skip to next data point
-    if(per_LTCPerm > 0.5) next
-    # list all possible combinations of per_LTC and per_Ann
-    possible_allocations <- matrix(seq(0.5, (1 - per_LTCPerm), by = unit), , 1)
-    
-    possible_results <- matrix(0, nrow(possible_allocations), 8)
-    
-    for (i in 1 : nrow(possible_allocations)) {
-        possible_results[i, ] <- post_opt(FinSin, Salary, possible_allocations[i], life_ept)
-    }
-    
-
-    # addjusted possible results (eliminate the cases that % portfolio < % annuity)
-    if(length(which(possible_results[ , 3] < possible_results[ , 4])) == 0 ){
-        add_pr <- possible_results
-    } else {
-        add_pr <- possible_results[-which(possible_results[ , 3] < possible_results[ , 4]), -c(8)]
-    }
-
-    # the optimal results for a single test
-    if(!is.null(nrow(add_pr))){    
-        test_optr <- add_pr[which(add_pr[ , 2] == min(add_pr[ , 2])), ]
-    }else{
-        test_optr <- add_pr
-    }
-    
-    #if multi results have rp = 0, then choose greatest ANetA
-    if(!is.null(nrow(test_optr)) && nrow(test_optr)>1){
-        test_optr <- test_optr[which(test_optr[,1] == max(test_optr[,1])),]
-    }
-    
-    
-    # the optimal results for all of the model points
-    test_optr <- c(j, test_optr)
-    mp_optr_actual <- rbind(mp_optr_actual, test_optr)
+        if(FALSE){ 
+            #####  Actual (affordable budget) case  #####
+            FinSin <-  MP[j, actualAssetID]
+            #*******************************************#
+            
+            # Whole life premium is driven by pre-model(affordable budget/actual asset)
+            w_prem <- MP[j,WLIdealID]                # whole life insurance annual premium    
+            w_bene <- w_prem / w_rate * 10000
+            # Perm insurance
+            sig_pre_perm <- w_prem * cer_ann_due[round(length(which(phycon == 1)) / st)]
+            
+            per_LTC <- sig_pre_LTC / FinSin
+            
+            per_perm <- sig_pre_perm / FinSin
+            
+            per_LTCPerm <- round(per_LTC + per_perm, digits = 1) + unit
+            
+            ntest <- round(1 - per_LTCPerm, digits = 1) / unit
+            
+            #if no possible_allocations available, skip to next data point
+            if(per_LTCPerm > 0.5) next
+            # list all possible combinations of per_LTC and per_Ann
+            possible_allocations <- matrix(seq(0.5, (1 - per_LTCPerm), by = unit), , 1)
+            
+            possible_results <- matrix(0, nrow(possible_allocations), 8)
+            
+            for (i in 1 : nrow(possible_allocations)) {
+                possible_results[i, ] <- post_opt(FinSin, Salary, possible_allocations[i], life_ept)
+            }
+            
+        
+            # addjusted possible results (eliminate the cases that % portfolio < % annuity)
+            if(length(which(possible_results[ , 3] < possible_results[ , 4])) == 0 ){
+                add_pr <- possible_results
+            } else {
+                add_pr <- possible_results[-which(possible_results[ , 3] < possible_results[ , 4]), -c(8)]
+            }
+        
+            # the optimal results for a single test
+            if(!is.null(nrow(add_pr))){    
+                test_optr <- add_pr[which(add_pr[ , 2] == min(add_pr[ , 2])), ]
+            }else{
+                test_optr <- add_pr
+            }
+            
+            #if multi results have rp = 0, then choose greatest ANetA
+            if(!is.null(nrow(test_optr)) && nrow(test_optr)>1){
+                test_optr <- test_optr[which(test_optr[,1] == max(test_optr[,1])),]
+            }
+            
+            
+            # the optimal results for all of the model points
+            test_optr <- c(j, test_optr)
+            mp_optr_actual <- rbind(mp_optr_actual, test_optr)
+        }
     print(j)
 }
 
 
 mp_optr_ideal <- mp_optr_ideal[-1, ]
-mp_optr_actual <- mp_optr_actual[-1, ]
+#mp_optr_actual <- mp_optr_actual[-1, ]
 
 
 colnames(mp_optr_ideal) <- c("ANetA", "Ideal Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls")
-colnames(mp_optr_actual) <- c("ANetA", "Actual Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls")
-write.csv(cbind(mp_optr_ideal,mp_optr_actual), file = "DataResults\\temp0604_1-750.csv")
+#colnames(mp_optr_actual) <- c("ANetA", "Actual Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls")
+write.csv(cbind(mp_optr_ideal,mp_optr_actual), file = "DataResults\\temp0604_1-50.csv")
 
 
 
