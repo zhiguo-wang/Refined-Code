@@ -1,4 +1,4 @@
-load("Refined Code\\new MC Matrix.RData")
+load("Refined-Code\\new MC Matrix.RData")
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # 1.9 the present value of certain annuity due (duration from 1 to 50)
@@ -67,6 +67,7 @@ getPhycon <- function(Gender,Age, MaxAge, st){
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # optimization function
 # return: ruin probability
+#         optimized allocation
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 post_opt <- function(FinSin, Salary, per_Inv, life_ept) {
     
@@ -106,15 +107,14 @@ post_opt <- function(FinSin, Salary, per_Inv, life_ept) {
     # http://money.cnn.com/tools/annuities/
     # 0.066 is the ratio between premium and benefits
     
-    spia <- pre_ima * 0.066
+    spia <- pre_ima * r_spia[which(r_spia==AgeRe),if(Gender=="M")2 else 3]
     
     # perm life insurance benefits
     
     plb <- w_bene
     
     # perm life insurance premium (rate comes from Misc lookup tables)
-    # assume the employee bought it at 40
-    
+        
     pre_perm <- w_prem
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         

@@ -5,7 +5,6 @@
 
 source("refined-code\\config.R")
 source("refined-code\\functions.R")
-cer_ann_due <- getCertainAnnuityDue()
 source("refined-code\\Assumptions.R")
 load("refined-code\\LE.RData")
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -33,7 +32,7 @@ MP <- read.csv("DataResults\\Post-Model Points 500 0521.csv", header = TRUE)
 mp_naive_ideal <- matrix(0, 1, 4)
 mp_naive_actual <- matrix(0, 1, 4)
 
-for (j in 1 : 2) {
+for (j in 1 : 500) {
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -78,27 +77,18 @@ for (j in 1 : 2) {
     phycon <- getPhycon(Gender,AgeRe,MaxAge,st)
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    
-    ####  Ideal case  ######
-    FinSin <-  MP[j, idealAssetID]
-    #**********************#
-    
-    # output result contains average aggregate net asset, ruin probability, shortfalls
-    test_naive <- post_naive()
-    
-    test_naive <- c(j, test_naive)
-    # the optimal results for all of the model points
-    mp_naive_ideal <- rbind(mp_naive_ideal, test_naive)
-
+ 
     
     #####  Actual (affordable budget) case  #####
-    FinSin <-  MP[j, actualAssetID]
+    FinSin <-  MP[j, naiveAssetID]
     #*******************************************#
    
-    test_naive <- post_naive()
+    naiveResult <- post_naive()
     
-    test_naive <- c(j, test_naive)
+    naiveResult <- c(j, naiveResult)
     # the optimal results for all of the model points
-    mp_naive_actual <- rbind(mp_naive_actual, test_naive)
+    mp_naive_actual <- rbind(mp_naive_actual, naiveResult)
     print(j)
 }
+
+write.csv(mp_naive_actual, file="dataresults\\naive ruin prob 500 527.csv")
