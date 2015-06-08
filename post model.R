@@ -31,7 +31,7 @@ MP <- read.csv("DataResults\\Post MP 750 0603.csv", header = TRUE)
 mp_optr_ideal <- matrix(0, 1, 9)
 mp_optr_actual <- matrix(0, 1, 9)
 
-for (j in 1 : 50){
+for (j in 1 : 750){
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -158,7 +158,8 @@ for (j in 1 : 50){
     unit <- 0.1
     
     ####  Ideal case  ######
-    FinSin <-  MP[j, idealAssetID] * (1 + APVstd[which(APVstd[,1]==AgeRe), ifelse(Gender=="M",2,3)] * 1.64)
+#    FinSin <-  MP[j, idealAssetID] * (1 + APVstd[which(APVstd[,1]==AgeRe), ifelse(Gender=="M",2,3)] * 1.64)
+    FinSin <-  MP[j, idealAssetID]    
     #**********************#
          
     #whole life benefit is to cover burial cost and 0.5* currentSalary
@@ -207,7 +208,7 @@ for (j in 1 : 50){
     # the optimal results for all of the model points
     test_optr <- c(j, test_optr)
     mp_optr_ideal <- rbind(mp_optr_ideal, test_optr)
-        if(FALSE){ 
+         
             #####  Actual (affordable budget) case  #####
             FinSin <-  MP[j, actualAssetID]
             #*******************************************#
@@ -227,7 +228,11 @@ for (j in 1 : 50){
             ntest <- round(1 - per_LTCPerm, digits = 1) / unit
             
             #if no possible_allocations available, skip to next data point
-            if(per_LTCPerm > 0.5) next
+            if(per_LTCPerm > 0.5){ 
+                 test_optr <- c(j,-1,-1,-1,-1,-1,-1,-1,-1)
+                 mp_optr_actual <- rbind(mp_optr_actual, test_optr)
+                 next
+            }
             # list all possible combinations of per_LTC and per_Ann
             possible_allocations <- matrix(seq(0.5, (1 - per_LTCPerm), by = unit), , 1)
             
@@ -261,18 +266,19 @@ for (j in 1 : 50){
             # the optimal results for all of the model points
             test_optr <- c(j, test_optr)
             mp_optr_actual <- rbind(mp_optr_actual, test_optr)
-        }
+        
     print(j)
 }
 
 
 mp_optr_ideal <- mp_optr_ideal[-1, ]
-#mp_optr_actual <- mp_optr_actual[-1, ]
+mp_optr_actual <- mp_optr_actual[-1, ]
 
 
-colnames(mp_optr_ideal) <- c("ANetA", "Ideal Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls")
-#colnames(mp_optr_actual) <- c("ANetA", "Actual Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls")
-write.csv(cbind(mp_optr_ideal,mp_optr_actual), file = "DataResults\\temp0604_1-50.csv")
+colnames(mp_optr_ideal) <- c("id","ANetA", "Ideal Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls")
+colnames(mp_optr_actual) <- c("id","ANetA", "Actual Ruin Prob", "% Investment", "% SPIA", "% DSPIA", "% LTC", "% WLI","shortfalls")
+write.csv(mp_optr_ideal, file = "DataResults\\temp_ideal_06050037_750.csv")
+write.csv(mp_optr_actual, file = "DataResults\\temp_actual_06050037_750.csv")
 
 
 

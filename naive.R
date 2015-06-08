@@ -1,5 +1,4 @@
 #' naive strategy
-#' requirement:        run post model to get all the inputs variables
 #' required variables:
 #'      period,st, ssb, phycon, Salary, AgeRe, lev, Burial_cost, LCP_M
 
@@ -7,6 +6,7 @@ source("refined-code\\config.R")
 source("refined-code\\functions.R")
 source("refined-code\\Assumptions.R")
 load("refined-code\\LE.RData")
+load("refined-code\\phycons.RData")
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Model Points Test
@@ -17,7 +17,7 @@ load("refined-code\\LE.RData")
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-MP <- read.csv("DataResults\\Post-Model Points 500 0521.csv", header = TRUE)
+MP <- read.csv("DataResults\\Post MP 750 0603.csv", header = TRUE)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -29,10 +29,10 @@ MP <- read.csv("DataResults\\Post-Model Points 500 0521.csv", header = TRUE)
 #
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-mp_naive_ideal <- matrix(0, 1, 4)
+
 mp_naive_actual <- matrix(0, 1, 4)
 
-for (j in 1 : 500) {
+for (j in 1 : 750) {
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
@@ -74,7 +74,7 @@ for (j in 1 : 500) {
        
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     
-    phycon <- getPhycon(Gender,AgeRe,MaxAge,st)
+    phycon <- get(paste("phycon.",Gender,AgeRe,sep=""))
     
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  
@@ -90,5 +90,5 @@ for (j in 1 : 500) {
     mp_naive_actual <- rbind(mp_naive_actual, naiveResult)
     print(j)
 }
-
-write.csv(mp_naive_actual, file="dataresults\\naive ruin prob 500 527.csv")
+colnames(mp_naive_actual) <- c("id", "ANetA", "agg_ruin", "shortfalls")
+write.csv(mp_naive_actual, file="dataresults\\Post naive 750 06050330.csv")
